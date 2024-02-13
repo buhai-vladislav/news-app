@@ -9,3 +9,40 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Users {
+  id        String    @id @unique @default(uuid())
+  fullname  String    @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  pass_hash String    @db.VarChar(255)
+  role      UserRole  @default(USER)
+  deleteAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  avatar    Files?
+}
+
+model Files {
+  id        String   @id @unique @default(uuid())
+  name      String
+  encoding  String   @db.VarChar(50)
+  mimetype  String   @db.VarChar(50)
+  size      Int
+  fileSrc   String
+  createdAt DateTime @default(now())
+  updated   DateTime @updatedAt
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+}
+
+model Token {
+  id        String   @id @unique @default(uuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updated   DateTime @updatedAt
+}
