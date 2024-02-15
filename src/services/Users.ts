@@ -5,7 +5,13 @@ import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 import { CreateUserDto, UpdateUserDto } from '../dtos';
 import { generatePasswordHash } from '../shared/utils/hash';
-import { UsersFindOptions, SortOrder } from '../shared/types';
+import {
+  AffectedResult,
+  ItemsPaginated,
+  ResponseBody,
+  User,
+  UsersFindOptions,
+} from '../shared/types';
 
 @Injectable()
 export class UsersService {
@@ -19,14 +25,30 @@ export class UsersService {
    *
    * @param {CreateUserDto} dto - the data for creating the new user
    * @param {Response} res - the response object for sending the response
-   * @return {Promise<Response>} a Promise that resolves to nothing
+   * @return {Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>>} a Promise that resolves to nothing
    */
-  public async create(dto: CreateUserDto, res: Response): Promise<Response> {
+  public async create(
+    dto: CreateUserDto,
+    res: Response,
+  ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
     try {
-      const { password } = dto;
+      const { password, email } = dto;
+
+      let user = await this.prismaService.users.findUnique({
+        where: { email },
+      });
+
+      if (user) {
+        return this.responseWrapper.sendError(
+          res,
+          HttpStatus.BAD_REQUEST,
+          'User already exists',
+        );
+      }
+
       const pass_hash = await generatePasswordHash(password);
 
-      const user = await this.prismaService.users.create({
+      user = await this.prismaService.users.create({
         data: { ...dto, pass_hash },
       });
       const { pass_hash: _, ...newUser } = user;
@@ -53,19 +75,27 @@ export class UsersService {
    * @param {string} userId - The ID of the user to update
    * @param {UpdateUserDto} dto - The data to update the user with
    * @param {Response} res - The response object
-   * @return {Promise<Response>} A Promise that resolves to undefined
+   * @return {Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>>} A Promise that resolves to undefined
    */
   public async updateById(
     userId: string,
     dto: UpdateUserDto,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
     try {
       const { password, ...updateDto } = dto;
       const user = await this.prismaService.users.update({
         where: { id: userId },
         data: { ...updateDto },
       });
+
+      if (!user) {
+        return this.responseWrapper.sendError(
+          res,
+          HttpStatus.NOT_FOUND,
+          'User to update not found.',
+        );
+      }
 
       if (password) {
         const pass_hash = await generatePasswordHash(password);
@@ -99,9 +129,12 @@ export class UsersService {
    *
    * @param {string} userId - The ID of the user to delete
    * @param {Response} res - The response object
-   * @return {Promise<Response>} Promise that resolves after the user is successfully deleted
+   * @return {Promise<Response<ResponseBody<AffectedResult>>>} Promise that resolves after the user is successfully deleted
    */
-  public async deleteById(userId: string, res: Response): Promise<Response> {
+  public async deleteById(
+    userId: string,
+    res: Response,
+  ): Promise<Response<ResponseBody<AffectedResult>>> {
     try {
       const deletedUser = await this.prismaService.users.delete({
         where: { id: userId },
@@ -136,9 +169,12 @@ export class UsersService {
    *
    * @param {string} userId - the ID of the user to retrieve
    * @param {Response} res - the response object to send the user data
-   * @return {Promise<Response>} a Promise that resolves when the user data is successfully sent, or rejects with an error
+   * @return {Promise<Response<Omit<User, 'pass_hash'>>>} a Promise that resolves when the user data is successfully sent, or rejects with an error
    */
-  public async getOneById(userId: string, res: Response): Promise<Response> {
+  public async getOneById(
+    userId: string,
+    res: Response,
+  ): Promise<Response<Omit<User, 'pass_hash'>>> {
     try {
       const user = await this.prismaService.users.findUnique({
         where: { id: userId },
@@ -175,12 +211,12 @@ export class UsersService {
    *
    * @param {UsersFindOptions} options - options for finding users
    * @param {Response} res - the response object
-   * @return {Promise<Response>} a Promise that resolves when the operation is complete
+   * @return {Promise<Response<ItemsPaginated<Omit<User, 'pass_hash'>>>>} a Promise that resolves when the operation is complete
    */
   public async getUsersPaginated(
     options: UsersFindOptions,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response<ItemsPaginated<Omit<User, 'pass_hash'>>>> {
     try {
       const { limit, page, deletedAt, role, search, sortBy, sortOrder } =
         options;

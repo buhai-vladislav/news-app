@@ -2,10 +2,15 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from './Prisma';
 import { ResponseWrapper } from '../shared/utils/response';
 import { Response } from 'express';
-import { CreateUserDto } from '../dtos';
+import { CreateUserDto, LoginDto, RefreshTokensDto } from '../dtos';
 import { checkPassword, generatePasswordHash } from '../shared/utils/hash';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
-import { JWTPayload } from '../shared/types';
+import {
+  AffectedResult,
+  JWTPayload,
+  ResponseBody,
+  TokenPair,
+} from '../shared/types';
 
 @Injectable()
 export class AuthService {
@@ -22,9 +27,12 @@ export class AuthService {
    *
    * @param {CreateUserDto} dto - the user data to be used for signup
    * @param {Response} res - the response object
-   * @return {Promise<Response>} the response object indicating the result of the signup process
+   * @return {Promise<Response<ResponseBody<AffectedResult>>>} the response object indicating the result of the signup process
    */
-  public async signup(dto: CreateUserDto, res: Response): Promise<Response> {
+  public async signup(
+    dto: CreateUserDto,
+    res: Response,
+  ): Promise<Response<ResponseBody<AffectedResult>>> {
     try {
       let user = await this.prismaService.users.findUnique({
         where: { email: dto.email },
@@ -50,7 +58,7 @@ export class AuthService {
       return this.responseWrapper.sendSuccess(
         res,
         HttpStatus.CREATED,
-        'User created successfully.',
+        'User signed up successfully.',
         { isAffected: !!user },
       );
     } catch (error) {
@@ -77,19 +85,18 @@ export class AuthService {
   }
 
   /**
-   * Perform a user login with email and password.
+   * A method to handle user login.
    *
-   * @param {string} email - The user's email
-   * @param {string} password - The user's password
-   * @param {Response} res - The response object
-   * @return {Promise<Response>} A promise that resolves to a response object
+   * @param {LoginDto} loginDto - the login data transfer object
+   * @param {Response} res - the response object
+   * @return {Promise<Response<ResponseBody<TokenPair>>>} a promise containing the response with token pair
    */
   public async login(
-    email: string,
-    password: string,
+    loginDto: LoginDto,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response<ResponseBody<TokenPair>>> {
     try {
+      const { email, password } = loginDto;
       const user = await this.prismaService.users.findUnique({
         where: { email },
       });
@@ -146,15 +153,16 @@ export class AuthService {
   /**
    * Refreshes the access token using the provided refresh token.
    *
-   * @param {string} refreshToken - The refresh token used to obtain a new access token.
+   * @param {RefreshTokensDto} refreshTokenDto - The refresh token used to obtain a new access token.
    * @param {Response} res - The response object to send the updated access and refresh tokens.
-   * @return {Promise<Response>} The updated response object with new access and refresh tokens.
+   * @return {Promise<Response<ResponseBody<TokenPair>>>} The updated response object with new access and refresh tokens.
    */
   public async refreshToken(
-    refreshToken: string,
+    refreshTokenDto: RefreshTokensDto,
     res: Response,
-  ): Promise<Response> {
+  ): Promise<Response<ResponseBody<TokenPair>>> {
     try {
+      const { refreshToken } = refreshTokenDto;
       const token = await this.prismaService.token.findUnique({
         where: { token: refreshToken },
       });
@@ -163,7 +171,7 @@ export class AuthService {
         return this.responseWrapper.sendError(
           res,
           HttpStatus.UNAUTHORIZED,
-          'Invalid refresh token.',
+          'Invalid token.',
         );
       }
 
@@ -194,14 +202,18 @@ export class AuthService {
   }
 
   /**
-   * A function to logout the user using the provided refresh token.
+   * Logout function that handles the logout process.
    *
-   * @param {string} refreshToken - The refresh token of the user
-   * @param {Response} res - The response object
-   * @return {Promise<Response>} The response after the logout operation
+   * @param {RefreshTokensDto} refreshTokenDto - the data transfer object containing the refresh token
+   * @param {Response} res - the response object
+   * @return {Promise<Response<ResponseBody<AffectedResult>>>} a promise that resolves to the response containing the affected result
    */
-  public async logout(refreshToken: string, res: Response): Promise<Response> {
+  public async logout(
+    refreshTokenDto: RefreshTokensDto,
+    res: Response,
+  ): Promise<Response<ResponseBody<AffectedResult>>> {
     try {
+      const { refreshToken } = refreshTokenDto;
       const token = await this.prismaService.token.findUnique({
         where: { token: refreshToken },
       });
@@ -222,6 +234,7 @@ export class AuthService {
         res,
         HttpStatus.OK,
         'Logout successful.',
+        { isAffected: true },
       );
     } catch (error) {
       return this.responseWrapper.sendError(
