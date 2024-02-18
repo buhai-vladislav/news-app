@@ -12,28 +12,47 @@ import {
   Query,
   Req,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
+import { UserRole } from '@prisma/client';
+import {
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UsersService } from '../services/Users';
 import { CreateUserDto, UpdateUserDto } from '../dtos';
-import { Response } from 'express';
 import {
   DEFAULT_PAGINATION_LIMIT,
   DEFAULT_PAGINATION_PAGE,
+  JWT_BEARER_SWAGGER_AUTH_NAME,
   USERS_SORT_KEYS,
 } from '../shared/utils/constants';
-import { UserRole } from '@prisma/client';
 import {
   AffectedResult,
+  IBufferedFile,
   ItemsPaginated,
   ResponseBody,
   SortOrder,
   User,
+  CustomRequest,
 } from '../shared/types';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ApiErrorResponse } from '../shared/decorators/ApiErrorResponse';
-import { ApiSuccessResponse } from '../shared/decorators/ApiOkResponse';
-import { ApiOkResponsePaginated } from '../shared/decorators/ApiOkPaginatedResponse';
-import { CustomRequest } from '../shared/types/CustomRequest';
+
+import {
+  ApiErrorResponse,
+  ApiOkResponsePaginated,
+  ApiSuccessResponse,
+} from '../shared/decorators';
+import {
+  CreateUserFormSchema,
+  UpdateUserFormSchema,
+} from '../shared/swagger/schemas';
 
 @ApiTags('Users')
 @Controller('users')
@@ -49,12 +68,17 @@ export class UsersController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody(CreateUserFormSchema)
+  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
   @Post('/')
   public async create(
     @Body() createUserDto: CreateUserDto,
     @Res() response: Response,
+    @UploadedFile() file?: IBufferedFile,
   ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
-    return this.usersService.create(createUserDto, response);
+    return this.usersService.create(createUserDto, response, file);
   }
 
   @ApiOperation({ summary: 'Update user by ID.' })
@@ -66,13 +90,18 @@ export class UsersController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody(UpdateUserFormSchema)
+  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
   @Put('/:id')
   public async updateById(
     @Param('id') userId: string,
     @Body() updateUserDto: UpdateUserDto,
     @Res() response: Response,
+    @UploadedFile() file?: IBufferedFile,
   ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
-    return this.usersService.updateById(userId, updateUserDto, response);
+    return this.usersService.updateById(userId, updateUserDto, response, file);
   }
 
   @ApiOperation({ summary: 'Delete user by ID.' })
@@ -88,6 +117,7 @@ export class UsersController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
   @Delete('/:id')
   public async deleteById(
     @Param('id') userId: string,
@@ -144,6 +174,7 @@ export class UsersController {
     required: false,
     example: UserRole.USER,
   })
+  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
   @Get('/')
   public async getUsersPaginated(
     @Res() response: Response,
@@ -176,6 +207,7 @@ export class UsersController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
   @Get('/me')
   public async getMe(
     @Req() request: CustomRequest,

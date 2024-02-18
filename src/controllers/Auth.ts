@@ -1,11 +1,26 @@
-import { Body, Controller, HttpStatus, Post, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Post,
+  Res,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
+import { ApiConsumes, ApiOperation, ApiTags, ApiBody } from '@nestjs/swagger';
 import { AuthService } from '../services/Auth';
 import { CreateUserDto, LoginDto, RefreshTokensDto } from '../dtos';
-import { AffectedResult, ResponseBody, TokenPair, User } from '../shared/types';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiErrorResponse } from 'src/shared/decorators/ApiErrorResponse';
-import { ApiSuccessResponse } from 'src/shared/decorators/ApiOkResponse';
+import {
+  AffectedResult,
+  IBufferedFile,
+  ResponseBody,
+  TokenPair,
+} from '../shared/types';
+import { ApiErrorResponse, ApiSuccessResponse } from '../shared/decorators';
+import { CreateUserFormSchema } from '../shared/swagger/schemas';
+import { PublicRoute } from 'src/shared/guards/PublicRoute';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -24,12 +39,17 @@ export class AuthController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody(CreateUserFormSchema)
+  @PublicRoute()
   @Post('signup')
   public async signup(
     @Body() createUserDto: CreateUserDto,
     @Res() response: Response,
+    @UploadedFile() file?: IBufferedFile,
   ): Promise<Response<ResponseBody<AffectedResult>>> {
-    return this.authService.signup(createUserDto, response);
+    return this.authService.signup(createUserDto, response, file);
   }
 
   @ApiOperation({ summary: 'Login a user' })
@@ -44,6 +64,7 @@ export class AuthController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @PublicRoute()
   @Post('login')
   public async login(
     @Body() loginDto: LoginDto,
@@ -64,6 +85,7 @@ export class AuthController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @PublicRoute()
   @Post('refresh')
   public async refreshToken(
     @Body() refreshTokenDto: RefreshTokensDto,
@@ -84,6 +106,7 @@ export class AuthController {
     'Internal server error.',
     HttpStatus.INTERNAL_SERVER_ERROR,
   )
+  @PublicRoute()
   @Post('logout')
   public async logout(
     @Body() refreshTokenDto: RefreshTokensDto,
