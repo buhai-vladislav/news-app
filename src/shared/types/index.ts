@@ -7,3 +7,4 @@ export * from './User';
 export * from './Response';
 export * from './TokenPair';
 export * from './Pagination';
+export * from './CustomRequest';
