@@ -7,16 +7,22 @@ import { CreateUserDto, UpdateUserDto } from '../dtos';
 import { generatePasswordHash } from '../shared/utils/hash';
 import {
   AffectedResult,
+  IBufferedFile,
   ItemsPaginated,
   ResponseBody,
   User,
   UsersFindOptions,
 } from '../shared/types';
+import { FilesService } from './Files';
+import { removeUndfined } from 'src/shared/utils/utils';
 
 @Injectable()
 export class UsersService {
   private readonly responseWrapper: ResponseWrapper;
-  constructor(private readonly prismaService: PrismaService) {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly filesService: FilesService,
+  ) {
     this.responseWrapper = new ResponseWrapper(UsersService.name);
   }
 
@@ -30,9 +36,10 @@ export class UsersService {
   public async create(
     dto: CreateUserDto,
     res: Response,
+    file?: IBufferedFile,
   ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
     try {
-      const { password, email } = dto;
+      const { password, email, fullname, role } = dto;
 
       let user = await this.prismaService.users.findUnique({
         where: { email },
@@ -48,9 +55,23 @@ export class UsersService {
 
       const pass_hash = await generatePasswordHash(password);
 
-      user = await this.prismaService.users.create({
-        data: { ...dto, pass_hash },
-      });
+      const createOptions = {
+        data: { email, role, fullname, pass_hash } as Prisma.UsersCreateInput,
+      };
+
+      if (file) {
+        const avatar = await this.filesService.uploadSingle(file);
+        createOptions.data = {
+          ...createOptions.data,
+          avatar: {
+            connect: {
+              id: avatar.id,
+            },
+          },
+        };
+      }
+
+      user = await this.prismaService.users.create(createOptions);
       const { pass_hash: _, ...newUser } = user;
 
       return this.responseWrapper.sendSuccess(
@@ -81,12 +102,16 @@ export class UsersService {
     userId: string,
     dto: UpdateUserDto,
     res: Response,
+    file?: IBufferedFile,
   ): Promise<Response<ResponseBody<Omit<User, 'pass_hash'>>>> {
     try {
-      const { password, ...updateDto } = dto;
+      const { password, ...rest } = dto;
       const user = await this.prismaService.users.update({
         where: { id: userId },
-        data: { ...updateDto },
+        data: { ...rest },
+        include: {
+          avatar: true,
+        },
       });
 
       if (!user) {
@@ -95,6 +120,29 @@ export class UsersService {
           HttpStatus.NOT_FOUND,
           'User to update not found.',
         );
+      }
+
+      if (file) {
+        if (user.avatar) {
+          const exsistsAvatart = await this.prismaService.files.delete({
+            where: { id: user.avatar.id },
+          });
+
+          await this.filesService.deleteSingle(exsistsAvatart.fileSrc);
+        } else {
+          const avatar = await this.filesService.uploadSingle(file);
+
+          await this.prismaService.users.update({
+            where: { id: userId },
+            data: {
+              avatar: {
+                connect: {
+                  id: avatar.id,
+                },
+              },
+            },
+          });
+        }
       }
 
       if (password) {
@@ -138,6 +186,9 @@ export class UsersService {
     try {
       const deletedUser = await this.prismaService.users.delete({
         where: { id: userId },
+        include: {
+          avatar: true,
+        },
       });
 
       if (!deletedUser) {
@@ -146,6 +197,10 @@ export class UsersService {
           HttpStatus.NOT_FOUND,
           'User to delete not found.',
         );
+      }
+
+      if (deletedUser.avatar) {
+        await this.filesService.deleteSingle(deletedUser.avatar.fileSrc);
       }
 
       return this.responseWrapper.sendSuccess(
@@ -178,6 +233,9 @@ export class UsersService {
     try {
       const user = await this.prismaService.users.findUnique({
         where: { id: userId },
+        include: {
+          avatar: true,
+        },
       });
 
       if (!user) {
@@ -188,11 +246,17 @@ export class UsersService {
         );
       }
 
+      if (user.avatar) {
+        user.avatar.fileSrc = await this.filesService.getObjectUrl(
+          user.avatar.fileSrc,
+        );
+      }
+
       const { pass_hash, ...userData } = user;
 
       return this.responseWrapper.sendSuccess(
         res,
-        HttpStatus.CREATED,
+        HttpStatus.OK,
         'User retreived successfully.',
         userData,
       );
@@ -218,24 +282,10 @@ export class UsersService {
     res: Response,
   ): Promise<Response<ItemsPaginated<Omit<User, 'pass_hash'>>>> {
     try {
-      const { limit, page, deletedAt, role, search, sortBy, sortOrder } =
-        options;
+      const { limit, page, sortBy, sortOrder } = options;
       const skip = (page - 1) * limit;
 
-      const where: Prisma.UsersWhereInput = {
-        OR: search
-          ? [
-              { fullname: { contains: search } },
-              { email: { contains: search } },
-            ]
-          : [],
-        deleteAt: deletedAt
-          ? {
-              not: null,
-            }
-          : undefined,
-        role: role ? { equals: role } : undefined,
-      };
+      const where: Prisma.UsersWhereInput = this.createWhereOptions(options);
 
       const [users, count] = await Promise.all([
         this.prismaService.users.findMany({
@@ -245,14 +295,26 @@ export class UsersService {
           orderBy: {
             [sortBy]: sortOrder,
           },
+          include: {
+            avatar: true,
+          },
         }),
         this.prismaService.users.count({ where }),
       ]);
 
-      const resultUsers = users.map((user) => ({
-        ...user,
-        pass_hash: undefined,
-      }));
+      const resultUsers = await Promise.all(
+        users.map(async (user) => {
+          if (user.avatar) {
+            user.avatar.fileSrc = await this.filesService.getObjectUrl(
+              user.avatar.fileSrc,
+            );
+          }
+          return {
+            ...user,
+            pass_hash: undefined,
+          };
+        }),
+      );
       const totalPages = Math.ceil(count / limit);
 
       const pagination = {
@@ -264,7 +326,7 @@ export class UsersService {
 
       return this.responseWrapper.sendSuccess(
         res,
-        HttpStatus.CREATED,
+        HttpStatus.OK,
         'User retreived successfully.',
         {
           items: resultUsers,
@@ -279,5 +341,25 @@ export class UsersService {
         error,
       );
     }
+  }
+
+  private createWhereOptions({
+    search,
+    deletedAt,
+    role,
+  }: Partial<UsersFindOptions>): Partial<Prisma.UsersWhereInput> {
+    const where: Prisma.UsersWhereInput = {
+      OR: search
+        ? [{ fullname: { contains: search } }, { email: { contains: search } }]
+        : undefined,
+      deleteAt: deletedAt
+        ? {
+            not: null,
+          }
+        : undefined,
+      role: role ? { equals: role } : undefined,
+    };
+
+    return removeUndfined(where);
   }
 }

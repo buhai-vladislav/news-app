@@ -7,10 +7,13 @@ import { checkPassword, generatePasswordHash } from '../shared/utils/hash';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import {
   AffectedResult,
+  IBufferedFile,
   JWTPayload,
   ResponseBody,
   TokenPair,
 } from '../shared/types';
+import { FilesService } from './Files';
+import { Prisma } from '.prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly filesService: FilesService,
   ) {
     this.responseWrapper = new ResponseWrapper(AuthService.name);
   }
@@ -32,8 +36,10 @@ export class AuthService {
   public async signup(
     dto: CreateUserDto,
     res: Response,
+    file?: IBufferedFile,
   ): Promise<Response<ResponseBody<AffectedResult>>> {
     try {
+      const { password, ...rest } = dto;
       let user = await this.prismaService.users.findUnique({
         where: { email: dto.email },
       });
@@ -46,14 +52,26 @@ export class AuthService {
         );
       }
 
-      const pass_hash = await generatePasswordHash(dto.password);
+      const pass_hash = await generatePasswordHash(password);
 
-      user = await this.prismaService.users.create({
+      const createOptions = {
         data: {
-          ...dto,
+          ...rest,
           pass_hash,
-        },
-      });
+        } as Prisma.UsersCreateInput,
+      };
+
+      if (file) {
+        const avatar = await this.filesService.uploadSingle(file);
+
+        createOptions.data.avatar = {
+          connect: {
+            id: avatar.id,
+          },
+        };
+      }
+
+      user = await this.prismaService.users.create(createOptions);
 
       return this.responseWrapper.sendSuccess(
         res,
@@ -79,7 +97,10 @@ export class AuthService {
    * @return {string} The signed token.
    */
   private signToken(payload: JWTPayload, options?: JwtSignOptions): string {
-    const token = this.jwtService.sign(payload, options);
+    const token = this.jwtService.sign(payload, {
+      secret: process.env.ACCESS_TOKEN_SECRET || 'SECRET',
+      ...options,
+    });
 
     return token;
   }
