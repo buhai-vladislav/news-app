@@ -19,7 +19,9 @@ export class CreateUserDto {
   password: string;
 
   @IsNotEmpty({ message: 'Role is required' })
-  @IsEnum(UserRole, { message: 'Role must be a valid role' })
+  @IsEnum(UserRole, {
+    message: `Role must be a valid role: ${Object.values(UserRole)}`,
+  })
   @ApiProperty({ required: true, example: 'ADMIN', enum: UserRole })
   role: UserRole;
 }
