@@ -36,9 +36,9 @@ model Files {
   size      Int
   fileSrc   String
   createdAt DateTime @default(now())
-  updated   DateTime @updatedAt
-  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String   @unique
+  updatedAt DateTime @updatedAt
+  user      Users?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  @unique
 }
 
 model Token {
