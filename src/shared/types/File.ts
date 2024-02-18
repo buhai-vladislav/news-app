@@ -43,7 +43,7 @@ export class File extends Base {
     type: String,
     example: 'image/png',
   })
-  mimetype: AppMimeType;
+  mimetype: AppMimeType | string;
 
   @ApiProperty({
     required: true,
