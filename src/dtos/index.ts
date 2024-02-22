@@ -2,3 +2,8 @@ export * from './CreateUserDto';
 export * from './UpdateUserDto';
 export * from './LoginDto';
 export * from './RefreshTokensDto';
+export * from './UpdateRssRulesDto';
+export * from './CreateRssFieldsConnectionDto';
+export * from './CreateRssSourceDto';
+export * from './UpdateRssFieldsConnectionDto';
+export * from './UpdateRssSourceDto';
