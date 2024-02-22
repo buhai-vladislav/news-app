@@ -39,7 +39,7 @@ export class AuthService {
     file?: IBufferedFile,
   ): Promise<Response<ResponseBody<AffectedResult>>> {
     try {
-      const { password, ...rest } = dto;
+      const { password, file: _, ...rest } = dto;
       let user = await this.prismaService.users.findUnique({
         where: { email: dto.email },
       });
