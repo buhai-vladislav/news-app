@@ -16,34 +16,114 @@ enum UserRole {
   ADMIN
 }
 
+enum FieldType {
+  RICH_TEXT
+  MEDIA
+}
+
+enum PostStatus {
+  HIDDEN
+  DRAFT
+}
+
 model Users {
-  id        String    @id @unique @default(uuid())
-  fullname  String    @db.VarChar(255)
-  email     String    @unique @db.VarChar(255)
-  pass_hash String    @db.VarChar(255)
-  role      UserRole  @default(USER)
+  id        String      @id @unique @default(uuid())
+  fullname  String      @db.VarChar(255)
+  email     String      @unique @db.VarChar(255)
+  pass_hash String      @db.VarChar(255)
+  role      UserRole    @default(USER)
   deleteAt  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   avatar    Files?
+  Posts     Posts[]
+  rssSorses RssSource[]
 }
 
 model Files {
-  id        String   @id @unique @default(uuid())
+  id        String        @id @unique @default(uuid())
   name      String
-  encoding  String   @db.VarChar(50)
-  mimetype  String   @db.VarChar(50)
+  encoding  String        @db.VarChar(50)
+  mimetype  String        @db.VarChar(50)
   size      Int
   fileSrc   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      Users?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String?  @unique
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      Users?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?       @unique
+  postBlock PostsBlocks[]
 }
 
 model Token {
   id        String   @id @unique @default(uuid())
   token     String   @unique
   createdAt DateTime @default(now())
-  updated   DateTime @updatedAt
+  updatedAt DateTime @updatedAt
+}
+
+model RssSource {
+  id          String                 @id @unique @default(uuid())
+  source      String
+  isStopped   Boolean                @default(false)
+  interval    Int
+  connections RssFieldsConnections[]
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  creator     Users                  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId   String
+}
+
+model RssFieldsConnections {
+  id          String    @id @unique @default(uuid())
+  internal    String    @db.VarChar(50)
+  external    String    @db.VarChar(50)
+  rssSourceId String
+  rssSourse   RssSource @relation(fields: [rssSourceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Tags {
+  id        String        @id @unique @default(uuid())
+  name      String        @unique @db.VarChar(50)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  posts     TagsToPosts[]
+}
+
+model Posts {
+  id               String        @id @unique @default(uuid())
+  externalId       String?       @unique
+  title            String
+  shortDescription String
+  creatorId        String?
+  creator          Users?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  creatorName      String?
+  status           PostStatus    @default(DRAFT)
+  postBlocks       PostsBlocks[]
+  tags             TagsToPosts[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model TagsToPosts {
+  tag    Tags   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId  String
+  post   Posts  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+
+  @@id([tagId, postId])
+}
+
+model PostsBlocks {
+  id        String    @id @unique @default(uuid())
+  order     Int       @db.SmallInt
+  type      FieldType @default(RICH_TEXT)
+  content   String?
+  post      Posts     @relation(fields: [postId], references: [id])
+  postId    String
+  media     Files?    @relation(fields: [mediaId], references: [id])
+  mediaId   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
