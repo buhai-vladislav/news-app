@@ -8,3 +8,6 @@ export * from './Response';
 export * from './TokenPair';
 export * from './Pagination';
 export * from './CustomRequest';
+export * from './RssFields';
+export * from './RssFieldsConnection';
+export * from './RssSource';
