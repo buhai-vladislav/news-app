@@ -1,6 +1,7 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsString } from '@nestjs/class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { IBufferedFile } from '../shared/types';
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'Fullname is required' })
@@ -24,4 +25,6 @@ export class CreateUserDto {
   })
   @ApiProperty({ required: true, example: 'ADMIN', enum: UserRole })
   role: UserRole;
+
+  file?: IBufferedFile | string | null;
 }
