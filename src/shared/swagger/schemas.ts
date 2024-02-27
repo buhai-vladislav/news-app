@@ -1,4 +1,4 @@
-import { UserRole } from '@prisma/client';
+import { FieldType, PostStatus, UserRole } from '@prisma/client';
 
 export const CreateUserFormSchema = {
   schema: {
@@ -58,6 +58,145 @@ export const UpdateUserFormSchema = {
         type: 'string',
         example: 'admin',
         enum: Object.values(UserRole),
+      },
+    },
+  },
+};
+
+export const CreatePostSchema = {
+  schema: {
+    type: 'object',
+    required: ['title', 'shortDescription', 'status', 'tags', 'postBlocks'],
+    properties: {
+      files: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      title: {
+        type: 'string',
+        example: 'My post title',
+      },
+      shortDescription: {
+        type: 'string',
+        example: 'My post content',
+      },
+      status: {
+        type: 'string',
+        example: 'DRAFT',
+        enum: Object.values(PostStatus),
+      },
+      tags: {
+        type: 'array',
+        items: {
+          type: 'string',
+        },
+      },
+      postBlocks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              example: 'TEXT',
+              enum: Object.values(FieldType),
+            },
+            content: {
+              type: 'string',
+              example: 'My post content',
+            },
+            order: {
+              type: 'number',
+              example: 1,
+            },
+            postId: {
+              type: 'string',
+              example: 'My post content',
+            },
+            fileName: {
+              type: 'string',
+              example: 'My post content',
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+export const UpdatePostSchema = {
+  schema: {
+    type: 'object',
+    properties: {
+      files: {
+        type: 'array',
+        items: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      title: {
+        type: 'string',
+        example: 'My post title',
+      },
+      shortDescription: {
+        type: 'string',
+        example: 'My post content',
+      },
+      status: {
+        type: 'string',
+        example: 'DRAFT',
+        enum: Object.values(PostStatus),
+      },
+      tags: {
+        type: 'array',
+        items: {
+          type: 'string',
+        },
+      },
+      postBlocks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              example: 'TEXT',
+              enum: Object.values(FieldType),
+            },
+            content: {
+              type: 'string',
+              example: 'My post content',
+            },
+            order: {
+              type: 'number',
+              example: 1,
+            },
+            postId: {
+              type: 'string',
+              example: 'My post content',
+            },
+            fileName: {
+              type: 'string',
+              example: 'My post content',
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+export const UpdatePostMediaSchema = {
+  schema: {
+    type: 'object',
+    properties: {
+      file: {
+        type: 'string',
+        format: 'binary',
       },
     },
   },
