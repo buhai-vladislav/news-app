@@ -46,7 +46,7 @@ import {
 
 import {
   ApiErrorResponse,
-  ApiOkResponsePaginated,
+  ApiSuccessPaginatedResponse,
   ApiSuccessResponse,
 } from '../shared/decorators';
 import {
@@ -127,7 +127,11 @@ export class UsersController {
   }
 
   @ApiOperation({ summary: 'Get all users.' })
-  @ApiOkResponsePaginated(User, 'Users retrieved successfully.', HttpStatus.OK)
+  @ApiSuccessPaginatedResponse(
+    User,
+    'Users retrieved successfully.',
+    HttpStatus.OK,
+  )
   @ApiErrorResponse(String, 'Unauthorized', HttpStatus.UNAUTHORIZED)
   @ApiErrorResponse(
     String,

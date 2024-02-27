@@ -2,7 +2,7 @@ import { HttpStatus, Type, applyDecorators } from '@nestjs/common';
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger';
 import { PaginationMeta, ResponseBody } from '../types';
 
-export const ApiOkResponsePaginated = <DataDto extends Type<unknown>>(
+export const ApiSuccessPaginatedResponse = <DataDto extends Type<unknown>>(
   dataDto: DataDto,
   description: string,
   status: HttpStatus,

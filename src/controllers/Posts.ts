@@ -49,7 +49,7 @@ import {
 } from '../shared/utils/constants';
 import {
   ApiErrorResponse,
-  ApiOkResponsePaginated,
+  ApiSuccessPaginatedResponse,
   ApiSuccessResponse,
 } from 'src/shared/decorators';
 import {
@@ -191,7 +191,7 @@ export class PostsController {
   }
 
   @ApiOperation({ summary: 'Get posts' })
-  @ApiOkResponsePaginated(PostType, 'Posts retrieved', HttpStatus.OK)
+  @ApiSuccessPaginatedResponse(PostType, 'Posts retrieved', HttpStatus.OK)
   @ApiErrorResponse(
     String,
     'Internal server error',
