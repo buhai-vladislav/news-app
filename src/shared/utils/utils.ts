@@ -4,6 +4,6 @@
  * @param {T} obj - the input object of generic type T
  * @return {T} a new object of type T with undefined properties removed
  */
-export const removeUndfined = <T>(obj: T): T => {
+export const removeUndefined = <T>(obj: T): T => {
   return JSON.parse(JSON.stringify(obj));
 };

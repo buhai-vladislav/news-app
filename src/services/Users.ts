@@ -14,7 +14,7 @@ import {
   UsersFindOptions,
 } from '../shared/types';
 import { FilesService } from './Files';
-import { removeUndfined } from 'src/shared/utils/utils';
+import { removeUndefined } from 'src/shared/utils/utils';
 
 @Injectable()
 export class UsersService {
@@ -360,6 +360,6 @@ export class UsersService {
       role: role ? { equals: role } : undefined,
     };
 
-    return removeUndfined(where);
+    return removeUndefined(where);
   }
 }
