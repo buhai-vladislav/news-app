@@ -6,6 +6,7 @@ export const ApiSuccessResponse = <DataDto extends Type<unknown>>(
   dataDto: DataDto,
   description: string,
   status: HttpStatus,
+  isArray: boolean = false,
 ) =>
   applyDecorators(
     ApiExtraModels(ResponseBody, dataDto),
@@ -22,9 +23,9 @@ export const ApiSuccessResponse = <DataDto extends Type<unknown>>(
           },
           {
             properties: {
-              data: {
-                $ref: getSchemaPath(dataDto),
-              },
+              data: isArray
+                ? { type: 'array', items: { $ref: getSchemaPath(dataDto) } }
+                : { $ref: getSchemaPath(dataDto) },
             },
           },
         ],
