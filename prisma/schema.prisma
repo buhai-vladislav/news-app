@@ -24,6 +24,7 @@ enum FieldType {
 enum PostStatus {
   HIDDEN
   DRAFT
+  PUBLISHED
 }
 
 model Users {
@@ -52,6 +53,7 @@ model Files {
   user      Users?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?       @unique
   postBlock PostsBlocks[]
+  post      Posts[]
 }
 
 model Token {
@@ -104,6 +106,9 @@ model Posts {
   tags             TagsToPosts[]
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+  media            Files?        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  mediaId          String?
 }
 
 model TagsToPosts {
