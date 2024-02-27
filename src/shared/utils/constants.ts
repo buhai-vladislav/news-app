@@ -12,4 +12,6 @@ export const USERS_SORT_KEYS = [
   'deletedAt',
 ];
 
+export const POSTS_SORT_KEYS = ['title', 'createdAt', 'updatedAt', 'deletedAt'];
+
 export const INTERVAL_RSS_PREFIX = 'rss-interval-';
