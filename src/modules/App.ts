@@ -5,6 +5,8 @@ import { AuthModule } from './Auth';
 import { CronTasksService } from '../services/CronTasks';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RssModule } from './Rss';
+import { TagsModule } from './Tags';
+import { PostsModule } from './Posts';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { RssModule } from './Rss';
     AuthModule,
     ScheduleModule.forRoot(),
     RssModule,
+    TagsModule,
+    PostsModule,
   ],
   controllers: [],
   providers: [CronTasksService],
