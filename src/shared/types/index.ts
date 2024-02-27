@@ -11,3 +11,4 @@ export * from './CustomRequest';
 export * from './RssFields';
 export * from './RssFieldsConnection';
 export * from './RssSource';
+export * from './Tag';
