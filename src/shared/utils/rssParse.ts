@@ -1,9 +1,10 @@
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../services/Prisma';
 import * as Parser from 'rss-parser';
-import { RssSource } from '@prisma/client';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { INTERVAL_RSS_PREFIX } from './constants';
+import { RssSource } from '../types';
+import { Prisma } from '@prisma/client';
 
 export const rssParse = async (
   prismaService: PrismaService,
@@ -16,14 +17,10 @@ export const rssParse = async (
     });
 
     if (!rssSource?.isStopped) {
-      const parser = new Parser({
-        customFields: { item: ['media:thumbnail'] },
-      });
-      const feed = await parser.parseURL(rssSource.source);
-
-      //TODO: Add parsing and saving to database
-
-      logger.log(`Rss source ${rssSourceId} parsed`);
+      const parsed = await parseRssAndSave(rssSource, prismaService);
+      logger.log(
+        `Rss source ${rssSourceId} parsed and saved ${parsed.count} posts`,
+      );
     } else {
       logger.log('Rss source is stopped');
       return;
@@ -60,4 +57,30 @@ export const deleteInterval = (
   if (schedulerRegistry.doesExist('interval', intervalName)) {
     schedulerRegistry.deleteInterval(intervalName);
   }
+};
+
+export const parseRssAndSave = async (
+  rssSource: RssSource,
+  prismaService: PrismaService,
+): Promise<Prisma.BatchPayload> => {
+  const parser = new Parser({
+    customFields: { item: ['media:thumbnail'] },
+  });
+  const feed = await parser.parseURL(rssSource.source);
+
+  const postsDatas = feed.items.map((item) => {
+    const postData = rssSource.connections.reduce((acc, connection) => {
+      acc[connection.internal] = item[connection.external];
+      return acc;
+    }, {} as Prisma.PostsCreateInput);
+
+    return postData;
+  });
+
+  const result = await prismaService.posts.createMany({
+    data: postsDatas,
+    skipDuplicates: true,
+  });
+
+  return result;
 };

@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './Prisma';
-import { Cron, SchedulerRegistry } from '@nestjs/schedule';
+import { Cron, SchedulerRegistry, Timeout } from '@nestjs/schedule';
 import { JwtService } from '@nestjs/jwt';
+import { parseRssAndSave } from 'src/shared/utils/rssParse';
+import { INTERVAL_RSS_PREFIX } from 'src/shared/utils/constants';
 
 @Injectable()
 export class CronTasksService {
@@ -40,6 +42,33 @@ export class CronTasksService {
       });
 
       this.logger.log(`Deleted ${result.count} expired tokens.`);
+    } catch (error) {
+      this.logger.error(error?.message ?? error);
+    }
+  }
+
+  @Timeout(0)
+  async startRssParser() {
+    try {
+      const rssSources = await this.prismaService.rssSource.findMany({
+        where: { isStopped: false },
+      });
+
+      await Promise.all(
+        rssSources.map(async (rssSource) => {
+          const intervalName = `${INTERVAL_RSS_PREFIX}${rssSource.id}`;
+          if (!this.schedulerRegistry.doesExist('interval', intervalName)) {
+            const interval = setInterval(
+              parseRssAndSave,
+              rssSource.interval * 1000,
+              rssSource,
+              this.prismaService,
+            );
+
+            this.schedulerRegistry.addInterval(intervalName, interval);
+          }
+        }),
+      );
     } catch (error) {
       this.logger.error(error?.message ?? error);
     }
