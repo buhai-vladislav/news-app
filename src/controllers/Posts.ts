@@ -26,7 +26,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
-import { PostStatus } from '@prisma/client';
+import { MixinConcatType, PostStatus } from '@prisma/client';
 import { Response } from 'express';
 import { CreatePostDto, UpdatePostDto } from '../dtos';
 import { PostsService } from '../services/Posts';
@@ -38,6 +38,7 @@ import {
   ItemsPaginated,
   PostSearch,
   Post as PostType,
+  PostsFindOptions,
   ResponseBody,
   SortOrder,
 } from '../shared/types';
@@ -51,12 +52,12 @@ import {
   ApiErrorResponse,
   ApiSuccessPaginatedResponse,
   ApiSuccessResponse,
-} from 'src/shared/decorators';
+} from '../shared/decorators';
 import {
   CreatePostSchema,
   UpdatePostMediaSchema,
   UpdatePostSchema,
-} from 'src/shared/swagger/schemas';
+} from '../shared/swagger/schemas';
 
 @ApiTags('Posts')
 @Controller('posts')
@@ -251,6 +252,13 @@ export class PostsController {
     description: 'Post tags',
     example: 'tag1ID,tag2Id',
   })
+  @ApiQuery({
+    name: 'mixinConcatType',
+    enum: MixinConcatType,
+    example: MixinConcatType.PAGINATION,
+    required: false,
+    description: 'Post mixin concat type',
+  })
   @PublicRoute()
   @Get('/')
   public async getPosts(
@@ -268,6 +276,7 @@ export class PostsController {
     @Query('sortOrder') sortOrder?: SortOrder,
     @Query('status') status?: PostStatus,
     @Query('creatorId') creatorId?: string,
+    @Query('mixinConcatType') mixinConcatType?: MixinConcatType,
     @Query('tags', new ParseArrayPipe({ items: String, separator: ',' }))
     tags?: string[],
   ): Promise<Response<ResponseBody<ItemsPaginated<PostType>>>> {
@@ -280,7 +289,8 @@ export class PostsController {
       status,
       tags,
       creatorId,
-    };
+      mixinConcatType,
+    } as PostsFindOptions;
 
     return this.postsService.getPosts(whereOptions, response);
   }

@@ -500,7 +500,7 @@ export class PostsService {
     response: Response,
   ): Promise<Response<ResponseBody<ItemsPaginated<Post>>>> {
     try {
-      const { limit, page, sortBy, sortOrder } = options;
+      const { limit, page, sortBy, sortOrder, mixinConcatType } = options;
       const skip = (page - 1) * limit;
       const where: Prisma.PostsWhereInput =
         this.createGetPostsWhereOptions(options);
@@ -546,6 +546,36 @@ export class PostsService {
             : post,
         ),
       );
+
+      if (mixinConcatType) {
+        const mixinSetting = await this.prismaService.mixinsSettings.findUnique(
+          { where: { concatType: mixinConcatType } },
+        );
+
+        if (!mixinSetting) {
+          return this.responseWrapper.sendError(
+            response,
+            HttpStatus.BAD_REQUEST,
+            'Invalid mixin concat type',
+          );
+        }
+
+        const skip = (page - 1) * mixinSetting.amountPerPage;
+
+        const mixins = await this.prismaService.mixins.findMany({
+          where: { concatTypes: { hasSome: [mixinConcatType] } },
+          orderBy: { orderPercentage: 'desc' },
+          take: mixinSetting.amountPerPage,
+          skip,
+        });
+
+        return this.responseWrapper.sendSuccess(
+          response,
+          HttpStatus.OK,
+          'Posts retrieved',
+          { items: postsWithMedia, pagination, mixins },
+        );
+      }
 
       return this.responseWrapper.sendSuccess(
         response,

@@ -1,4 +1,4 @@
-import { PostStatus } from '@prisma/client';
+import { MixinConcatType, PostStatus } from '@prisma/client';
 import { SortOrder } from './SortOrder';
 
 export class PostsFindOptions {
@@ -10,4 +10,5 @@ export class PostsFindOptions {
   creatorId?: string;
   page: number;
   limit: number;
+  mixinConcatType?: MixinConcatType;
 }
