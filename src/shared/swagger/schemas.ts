@@ -1,4 +1,11 @@
-import { FieldType, PostStatus, UserRole } from '@prisma/client';
+import {
+  FieldType,
+  MixinConcatType,
+  MixinStatus,
+  MixinType,
+  PostStatus,
+  UserRole,
+} from '@prisma/client';
 
 export const CreateUserFormSchema = {
   schema: {
@@ -194,6 +201,107 @@ export const UpdatePostMediaSchema = {
   schema: {
     type: 'object',
     properties: {
+      file: {
+        type: 'string',
+        format: 'binary',
+      },
+    },
+  },
+};
+
+export const CreateMixinSchema = {
+  schema: {
+    type: 'object',
+    required: ['concatTypes', 'status', 'orderPercentage', 'type'],
+    properties: {
+      concatTypes: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: Object.values(MixinConcatType),
+          example: MixinConcatType.PAGINATION,
+        },
+      },
+      status: {
+        type: 'string',
+        enum: Object.values(MixinStatus),
+        example: MixinStatus.HIDDEN,
+      },
+      orderPercentage: {
+        type: 'number',
+        example: 100,
+      },
+      type: {
+        type: 'string',
+        enum: Object.values(MixinType),
+        example: MixinType.TEXT,
+      },
+      text: {
+        type: 'string',
+        example: 'My post content',
+      },
+      linkUrl: {
+        type: 'string',
+        example: 'https://example.com',
+      },
+      linkText: {
+        type: 'string',
+        example: 'Read more',
+      },
+      postId: {
+        type: 'string',
+        example: '12e1234124erd1234r124e',
+      },
+      file: {
+        type: 'string',
+        format: 'binary',
+      },
+    },
+  },
+};
+
+export const UpdateMixinSchema = {
+  schema: {
+    type: 'object',
+    properties: {
+      concatTypes: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: Object.values(MixinConcatType),
+          example: MixinConcatType.PAGINATION,
+        },
+      },
+      status: {
+        type: 'string',
+        enum: Object.values(MixinStatus),
+        example: MixinStatus.HIDDEN,
+      },
+      orderPercentage: {
+        type: 'number',
+        example: 100,
+      },
+      type: {
+        type: 'string',
+        enum: Object.values(MixinType),
+        example: MixinType.TEXT,
+      },
+      text: {
+        type: 'string',
+        example: 'My post content',
+      },
+      linkUrl: {
+        type: 'string',
+        example: 'https://example.com',
+      },
+      linkText: {
+        type: 'string',
+        example: 'Read more',
+      },
+      postId: {
+        type: 'string',
+        example: '12e1234124erd1234r124e',
+      },
       file: {
         type: 'string',
         format: 'binary',
