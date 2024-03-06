@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RssModule } from './Rss';
 import { TagsModule } from './Tags';
 import { PostsModule } from './Posts';
+import { MixinsModule } from './Mixins';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PostsModule } from './Posts';
     RssModule,
     TagsModule,
     PostsModule,
+    MixinsModule,
   ],
   controllers: [],
   providers: [CronTasksService],
