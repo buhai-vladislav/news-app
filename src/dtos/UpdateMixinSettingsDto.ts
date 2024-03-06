@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { MixinConcatType } from '@prisma/client';
 
 export class UpdateMixinSettingsDto {
-  @ApiProperty({ enum: MixinConcatType, example: MixinConcatType.LIST })
+  @ApiProperty({ enum: MixinConcatType, example: MixinConcatType.PAGINATION })
   @IsEnum(MixinConcatType, {
     message: `concatType must be one of ${Object.values(MixinConcatType).join(', ')}`,
   })
