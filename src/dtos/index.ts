@@ -13,3 +13,7 @@ export * from './CreatePostBlockDto';
 export * from './UpdatePostBlockDto';
 export * from './CreatePostDto';
 export * from './UpdatePostDto';
+export * from './CreateMixinDto';
+export * from './UpdateMixinDto';
+export * from './CreateMixinSettingsDto';
+export * from './UpdateMixinSettingsDto';
