@@ -15,3 +15,5 @@ export * from './Tag';
 export * from './Post';
 export * from './PostBlock';
 export * from './PostsFindOptions';
+export * from './MixinsFindOptions';
+export * from './Mixin';
