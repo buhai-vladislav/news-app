@@ -27,6 +27,23 @@ enum PostStatus {
   PUBLISHED
 }
 
+enum MixinType {
+  TEXT
+  MEDIA
+  LINK
+}
+
+enum MixinConcatType {
+  PAGINATION
+  SEARCH
+  TAGS
+}
+
+enum MixinStatus {
+  PUBLISHED
+  HIDDEN
+}
+
 model Users {
   id        String      @id @unique @default(uuid())
   fullname  String      @db.VarChar(255)
@@ -37,7 +54,7 @@ model Users {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   avatar    Files?
-  Posts     Posts[]
+  posts     Posts[]
   rssSorses RssSource[]
 }
 
@@ -53,7 +70,8 @@ model Files {
   user      Users?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String?       @unique
   postBlock PostsBlocks[]
-  post      Posts[]
+  posts     Posts[]
+  mixins    Mixins[]
 }
 
 model Token {
@@ -109,6 +127,7 @@ model Posts {
   deletedAt        DateTime?
   media            Files?        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   mediaId          String?
+  mixins           Mixins[]
 }
 
 model TagsToPosts {
@@ -131,4 +150,29 @@ model PostsBlocks {
   mediaId   String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+model Mixins {
+  id              String            @id @unique @default(uuid())
+  media           Files?            @relation(fields: [mediaId], references: [id])
+  mediaId         String?
+  text            String?
+  linkUrl         String?
+  linkText        String?           @db.VarChar(50)
+  post            Posts?            @relation(fields: [postId], references: [id])
+  postId          String?
+  type            MixinType         @default(TEXT)
+  concatTypes     MixinConcatType[]
+  status          MixinStatus       @default(HIDDEN)
+  orderPercentage Int               @db.SmallInt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model MixinsSettings {
+  id            String          @id @unique @default(uuid())
+  concatType    MixinConcatType @unique
+  amountPerPage Int             @db.SmallInt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
