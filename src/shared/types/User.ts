@@ -17,5 +17,5 @@ export class User extends Base {
   avatar?: File;
 
   @ApiProperty({ type: Date, required: false })
-  deleteAt?: Date;
+  deletedAt?: Date;
 }

@@ -10,7 +10,7 @@ async function bootstrap() {
   const logger = new Logger(AppModule.name);
   const reflector = app.get(Reflector);
 
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.useGlobalGuards(new JwtAuthGuard(reflector));
 
   const config = new DocumentBuilder()

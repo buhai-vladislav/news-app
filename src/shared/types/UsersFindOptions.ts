@@ -6,7 +6,7 @@ export class UsersFindOptions {
   limit: number;
   search?: string;
   role?: UserRole;
-  deletedAt?: Date;
+  deletedAt?: boolean;
   sortBy?: string;
   sortOrder?: SortOrder;
 }

@@ -6,6 +6,7 @@ import {
   Get,
   HttpStatus,
   Param,
+  ParseBoolPipe,
   ParseIntPipe,
   Post,
   Put,
@@ -169,7 +170,7 @@ export class UsersController {
   })
   @ApiQuery({
     name: 'deletedAt',
-    type: Date,
+    type: Boolean,
     required: false,
   })
   @ApiQuery({
@@ -192,12 +193,27 @@ export class UsersController {
     page?: number,
     @Query('role') role?: UserRole,
     @Query('search') search?: string,
-    @Query('deletedAt') deletedAt?: Date,
+    @Query('deletedAt') deletedAt?: boolean,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: SortOrder,
   ): Promise<Response<ItemsPaginated<Omit<User, 'pass_hash'>>>> {
     return this.usersService.getUsersPaginated(
-      { page, limit, role, search, deletedAt, sortBy, sortOrder },
+      {
+        page,
+        limit,
+        role,
+        search,
+        deletedAt:
+          deletedAt !== undefined
+            ? JSON.parse(
+                typeof deletedAt === 'string'
+                  ? deletedAt
+                  : JSON.stringify(deletedAt),
+              )
+            : undefined,
+        sortBy,
+        sortOrder,
+      },
       response,
     );
   }

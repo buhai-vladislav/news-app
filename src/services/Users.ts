@@ -350,13 +350,17 @@ export class UsersService {
   }: Partial<UsersFindOptions>): Partial<Prisma.UsersWhereInput> {
     const where: Prisma.UsersWhereInput = {
       OR: search
-        ? [{ fullname: { contains: search } }, { email: { contains: search } }]
+        ? [
+            { fullname: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ]
         : undefined,
-      deleteAt: deletedAt
-        ? {
-            not: null,
-          }
-        : undefined,
+      deletedAt:
+        deletedAt !== undefined
+          ? deletedAt
+            ? { equals: null }
+            : { not: null }
+          : undefined,
       role: role ? { equals: role } : undefined,
     };
 

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { Transform } from 'class-transformer';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -29,7 +30,10 @@ export class UpdateUserDto {
   role?: UserRole;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value === 'null' || value === undefined ? null : value,
+  )
   @IsDateString({ message: 'Invalid date.' })
   @ApiProperty({ required: false, example: '2022-01-01T00:00:00.000Z' })
-  deleteAt?: Date;
+  deletedAt?: Date;
 }
