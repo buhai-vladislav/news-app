@@ -7,3 +7,4 @@ export * from './Media';
 export * from './HttpStatus';
 export * from './SortOrder';
 export * from './RTK';
+export * from './Tag';
