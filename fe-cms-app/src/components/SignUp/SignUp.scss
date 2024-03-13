@@ -1,0 +1,32 @@
+.signup__wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  height: fit-content;
+
+  .tabs__wrapper {
+    width: 100%;
+
+    .rounded-full {
+      width: 100%;
+    }
+  }
+
+  .button__wrapper {
+    padding-top: 1rem;
+  }
+
+  a {
+    color: #0070f0;
+    text-decoration: none;
+    text-align: center;
+    margin-top: 1rem;
+    display: block;
+  }
+}
