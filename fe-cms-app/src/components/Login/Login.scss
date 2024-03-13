@@ -1,0 +1,19 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  height: fit-content;
+  align-self: center;
+
+  a {
+    color: #0070f0;
+    text-decoration: none;
+    text-align: center;
+  }
+}
