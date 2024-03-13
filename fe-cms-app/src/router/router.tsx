@@ -4,6 +4,7 @@ import { Login } from '../components/Login';
 import { SignUp } from '../components/SignUp';
 import { UsersPage } from '../pages/Users';
 import { TagsPage } from '../pages/Tags';
+import { UpdateUserPage } from '../pages/UpdateUser';
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: '/users',
         element: <UsersPage />,
+      },
+      {
+        path: '/users/:userId',
+        element: <UpdateUserPage />,
       },
       {
         path: '/tags',

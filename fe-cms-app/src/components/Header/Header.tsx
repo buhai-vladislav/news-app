@@ -50,7 +50,7 @@ export const Header = () => {
             <Popover placement="left">
               <PopoverTrigger>
                 <Avatar
-                  name={user.name}
+                  name={user.fullname}
                   isBordered
                   radius="sm"
                   src={
@@ -64,12 +64,23 @@ export const Header = () => {
               <PopoverContent>
                 <Button
                   size="sm"
+                  className="w-full"
+                  style={{ marginBottom: '5px' }}
                   onPress={logoutHandler}
                   disabled={isLoading}
                   isLoading={isLoading}
                   variant="flat"
                 >
                   Logout
+                </Button>
+                <Button
+                  size="sm"
+                  onPress={handleNavigate(`/users/${user.id}`)}
+                  disabled={isLoading}
+                  isLoading={isLoading}
+                  variant="flat"
+                >
+                  Update user
                 </Button>
               </PopoverContent>
             </Popover>
