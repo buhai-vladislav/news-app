@@ -113,12 +113,16 @@ export const UsersTable: FC<UserTableProps> = ({ onOpen }) => {
           </Chip>
         );
       case 'actions':
-        console.log(user);
         return (
           <div className="relative flex justify-end items-center gap-2">
-            <Dropdown>
+            <Dropdown isDisabled={user.role !== 'USER'}>
               <DropdownTrigger>
-                <Button isIconOnly size="sm" variant="light">
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  disabled={user.role !== 'USER'}
+                >
                   <VerticalDotsIcon className="text-default-300" />
                 </Button>
               </DropdownTrigger>
