@@ -7,7 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import { IResponse, ITokenPair } from '../../shared/types';
 import { resetUser } from '../slices/user.slice';
-import { TAGS_TAG, USER_TAG } from '../../shared/utils/constants';
+import { POSTS_TAG, TAGS_TAG, USER_TAG } from '../../shared/utils/constants';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: '/api',
@@ -71,6 +71,6 @@ const baseQueryWithReauth: BaseQueryFn<
 export const mainApi = createApi({
   reducerPath: 'main',
   baseQuery: baseQueryWithReauth,
-  tagTypes: [USER_TAG, TAGS_TAG],
+  tagTypes: [USER_TAG, TAGS_TAG, POSTS_TAG],
   endpoints: (_build) => ({}),
 });

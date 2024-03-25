@@ -8,3 +8,4 @@ export * from './HttpStatus';
 export * from './SortOrder';
 export * from './RTK';
 export * from './Tag';
+export * from './Post';
