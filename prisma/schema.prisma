@@ -145,7 +145,7 @@ model PostsBlocks {
   order     Int       @db.SmallInt
   type      FieldType @default(RICH_TEXT)
   content   String?
-  post      Posts     @relation(fields: [postId], references: [id])
+  post      Posts     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
   media     Files?    @relation(fields: [mediaId], references: [id])
   mediaId   String?
