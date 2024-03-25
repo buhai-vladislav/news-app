@@ -128,7 +128,7 @@ export class UsersService {
             where: { id: user.avatar.id },
           });
 
-          await this.filesService.deleteSingle(exsistsAvatart.fileSrc);
+          await this.filesService.deleteSingle(exsistsAvatart.id);
         } else {
           const avatar = await this.filesService.uploadSingle(file);
 
@@ -200,7 +200,7 @@ export class UsersService {
       }
 
       if (deletedUser.avatar) {
-        await this.filesService.deleteSingle(deletedUser.avatar.fileSrc);
+        await this.filesService.deleteSingle(deletedUser.avatar.id);
       }
 
       return this.responseWrapper.sendSuccess(

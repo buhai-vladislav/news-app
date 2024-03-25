@@ -121,6 +121,18 @@ export class FilesService {
   }
 
   /**
+   * Asynchronously deletes a single item from bucket.
+   *
+   * @param {string} fileSrc - the name of the item to be deleted
+   * @return {Promise<boolean>} a promise that resolves to a boolean indicating the success of the deletion, or null if the item does not exist
+   */
+  async deleteFromBucket(fileSrc: string): Promise<boolean> {
+    await this.minIOService.delete(fileSrc);
+
+    return true;
+  }
+
+  /**
    * Retrieves the URL of an object from the specified file source.
    *
    * @param {string} fileSrc - the source of the file

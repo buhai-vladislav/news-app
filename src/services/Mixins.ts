@@ -111,7 +111,7 @@ export class MixinsService {
       }
 
       if (file) {
-        await this.fileService.deleteSingle(mixin.media.name);
+        await this.fileService.deleteSingle(mixin.media.id);
         const { id, name } = await this.fileService.uploadSingle(file);
 
         mixin = await this.prismaService.mixins.update({
@@ -166,7 +166,7 @@ export class MixinsService {
         );
       }
 
-      await this.fileService.deleteSingle(mixin.media.name);
+      await this.fileService.deleteSingle(mixin.media.id);
 
       return this.responseWrapper.sendSuccess(
         response,

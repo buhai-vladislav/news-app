@@ -12,6 +12,7 @@ import { Response } from 'express';
 import {
   AffectedResult,
   CustomRequest,
+  File,
   IBufferedFile,
   ItemsPaginated,
   PaginationMeta,
@@ -19,6 +20,7 @@ import {
   PostSearch,
   PostsFindOptions,
   ResponseBody,
+  Tag,
 } from '../shared/types';
 import { FilesService } from './Files';
 import { PostStatus, Prisma } from '@prisma/client';
@@ -72,23 +74,26 @@ export class PostsService {
             data: postBlocks,
           },
         },
-      };
+      } as Prisma.PostsCreateInput;
 
       if (files) {
         const uploadedFiles = await this.fileService.uploadMany(files);
 
-        data.postBlocks.createMany.data = postBlocks.map((block) => ({
-          ...block,
-          media: {
-            connect: {
-              id: uploadedFiles.find((file) => file.name === block?.fileName)
-                .id,
-            },
-          },
-          post: { connect: { id: post.id } },
-        }));
+        data.postBlocks.createMany.data = postBlocks.map((block) => {
+          const file = uploadedFiles.find(
+            (file) => file.name === block?.fileName,
+          );
+
+          return {
+            order: block.order,
+            type: block.type,
+            content: block?.content,
+            mediaId: file?.id,
+          };
+        });
 
         if (mediaName) {
+          console.log(mediaName, uploadedFiles);
           data['media'] = {
             connect: {
               id: uploadedFiles.find((file) => file.name === mediaName).id,
@@ -110,6 +115,7 @@ export class PostsService {
         post,
       );
     } catch (error) {
+      console.error(error);
       return this.responseWrapper.sendError(
         response,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -135,21 +141,40 @@ export class PostsService {
     files?: IBufferedFile[],
   ): Promise<Response<ResponseBody<Post>>> {
     try {
-      const { title, shortDescription, status, tags, postBlocks } =
-        updatePostDto;
+      const {
+        title,
+        shortDescription,
+        status,
+        tags,
+        postBlocks,
+        mediaName,
+        deletedAt,
+      } = updatePostDto;
+
+      const data = removeUndefined({
+        title,
+        shortDescription,
+        status,
+        deletedAt,
+      });
+
+      if (tags) {
+        data['tags'] = {
+          deleteMany: {},
+          create: tags.map((tagId) => ({ tag: { connect: { id: tagId } } })),
+        };
+      }
 
       let post = await this.prismaService.posts.update({
         where: { id: postId },
         data: {
-          title,
-          shortDescription,
-          status,
-          tags: {
-            deleteMany: {},
-            create: tags.map((tagId) => ({ tag: { connect: { id: tagId } } })),
-          },
+          ...data,
         },
-        include: { tags: true, postBlocks: { include: { media: true } } },
+        include: {
+          tags: true,
+          postBlocks: { include: { media: true } },
+          media: true,
+        },
       });
 
       if (!post) {
@@ -160,6 +185,17 @@ export class PostsService {
         );
       }
 
+      if (mediaName || mediaName === null) {
+        const file = files.find(
+          ({ originalname }) => originalname === mediaName,
+        );
+
+        await this.changePostMedia(
+          post as unknown as Post & { media?: File },
+          file ?? null,
+        );
+      }
+
       if (postBlocks) {
         await Promise.all(
           postBlocks.map(async (block) => {
@@ -167,25 +203,31 @@ export class PostsService {
               await this.createPostBlock(block, postId, files);
             }
             if (block.actionType === PostBlockActionType.UPDATE) {
-              const data = removeUndefined({
-                order: block?.order,
-                type: block?.type,
-                content: block?.content,
-              }) as Prisma.PostsBlocksUpdateInput;
+              // const data = removeUndefined({
+              //   order: block?.order,
+              //   type: block?.type,
+              //   content: block?.content,
+              // }) as Prisma.PostsBlocksUpdateInput;
 
-              await this.prismaService.postsBlocks.update({
-                where: {
-                  id: block.postBlockId,
-                },
-                data,
-              });
+              // await this.prismaService.postsBlocks.update({
+              //   where: {
+              //     id: block.postBlockId,
+              //   },
+              //   data,
+              // });
+              await this.updatePostBlock(block.id, block, files);
             }
             if (block.actionType === PostBlockActionType.DELETE) {
-              await this.prismaService.postsBlocks.delete({
+              const data = await this.prismaService.postsBlocks.delete({
                 where: {
-                  id: block.postBlockId,
+                  id: block.id,
                 },
+                include: { media: true },
               });
+
+              if (data.media) {
+                await this.fileService.deleteFromBucket(data.media.fileSrc);
+              }
             }
           }),
         );
@@ -193,7 +235,11 @@ export class PostsService {
 
       post = await this.prismaService.posts.findUnique({
         where: { id: postId },
-        include: { tags: true, postBlocks: { include: { media: true } } },
+        include: {
+          tags: true,
+          postBlocks: { include: { media: true } },
+          media: true,
+        },
       });
 
       if (post.postBlocks.some((block) => block?.media)) {
@@ -239,64 +285,34 @@ export class PostsService {
    * @return {Promise<Response<ResponseBody<AffectedResult>>>} A promise that resolves to the updated HTTP response with affected result
    */
   public async changePostMedia(
-    postId: string,
+    post: Post & { media?: File },
     file: IBufferedFile | null,
-    response: Response,
-  ): Promise<Response<ResponseBody<AffectedResult>>> {
-    try {
-      const post = await this.prismaService.posts.findUnique({
-        where: { id: postId },
-        include: { media: true },
-      });
-
-      if (!post) {
-        return this.responseWrapper.sendError(
-          response,
-          HttpStatus.NOT_FOUND,
-          'Post not found',
-        );
-      }
-
-      if (file === null) {
-        await Promise.all([
-          this.prismaService.posts.update({
-            where: { id: postId },
-            data: {
-              media: {
-                disconnect: true,
-              },
-            },
-          }),
-          this.fileService.deleteSingle(post.media.fileSrc),
-        ]);
-      } else {
-        const uploadedFile = await this.fileService.uploadSingle(file);
-
-        await this.prismaService.posts.update({
-          where: { id: postId },
+  ): Promise<void> {
+    if (file === null) {
+      await Promise.all([
+        this.prismaService.posts.update({
+          where: { id: post.id },
           data: {
             media: {
-              connect: {
-                id: uploadedFile.id,
-              },
+              disconnect: true,
             },
           },
-        });
-      }
+        }),
+        this.fileService.deleteSingle(post?.media?.id),
+      ]);
+    } else {
+      const uploadedFile = await this.fileService.uploadSingle(file);
 
-      return this.responseWrapper.sendSuccess(
-        response,
-        HttpStatus.OK,
-        'Post media updated',
-        { isAffected: true },
-      );
-    } catch (error) {
-      return this.responseWrapper.sendError(
-        response,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        'Internal server error',
-        error,
-      );
+      await this.prismaService.posts.update({
+        where: { id: post.id },
+        data: {
+          media: {
+            connect: {
+              id: uploadedFile.id,
+            },
+          },
+        },
+      });
     }
   }
 
@@ -343,6 +359,65 @@ export class PostsService {
     });
   }
 
+  private async updatePostBlock(
+    blockId: string,
+    blockData: UpdatePostBlockDto,
+    files: IBufferedFile[],
+  ) {
+    const block = await this.prismaService.postsBlocks.findUnique({
+      where: { id: blockId },
+      include: { media: true },
+    });
+
+    if (!block) {
+      return;
+    }
+
+    if (blockData?.fileName) {
+      if (block.media) {
+        await this.prismaService.postsBlocks.update({
+          where: { id: blockId },
+          data: {
+            media: {
+              disconnect: true,
+            },
+          },
+        });
+        await this.fileService.deleteSingle(block.media.id);
+      }
+
+      const file = files.find(
+        (file) => file.originalname === blockData.fileName,
+      );
+
+      if (file) {
+        const uploadedFile = await this.fileService.uploadSingle(file);
+
+        await this.prismaService.postsBlocks.update({
+          where: { id: blockId },
+          data: {
+            media: {
+              connect: {
+                id: uploadedFile.id,
+              },
+            },
+          },
+        });
+      }
+    } else {
+      const data = removeUndefined({
+        order: blockData.order,
+        type: blockData.type,
+        content: blockData.content,
+      });
+
+      await this.prismaService.postsBlocks.update({
+        where: { id: blockId },
+        data,
+      });
+    }
+  }
+
   /**
    * Delete a post and its associated media files from the database.
    *
@@ -370,7 +445,7 @@ export class PostsService {
 
       post.postBlocks.map(async (block) => {
         if (block.media) {
-          await this.fileService.deleteSingle(block.media.fileSrc);
+          await this.fileService.deleteSingle(block.media.id);
         }
       });
 
@@ -404,7 +479,11 @@ export class PostsService {
     try {
       const post = await this.prismaService.posts.findUnique({
         where: { id: postId },
-        include: { tags: true, postBlocks: { include: { media: true } } },
+        include: {
+          media: true,
+          tags: { include: { tag: true } },
+          postBlocks: { include: { media: true } },
+        },
       });
 
       if (!post) {
@@ -432,6 +511,19 @@ export class PostsService {
           ),
         );
       }
+
+      if (post.media) {
+        post.media = {
+          ...post.media,
+          fileSrc: await this.fileService.getObjectUrl(post.media.fileSrc),
+        };
+      }
+
+      post.tags = post.tags.map((tag) => ({ ...tag.tag })) as unknown as {
+        tagId: string;
+        tag: Tag;
+        postId: string;
+      }[];
 
       return this.responseWrapper.sendSuccess(
         response,
@@ -608,7 +700,7 @@ export class PostsService {
       where.creatorId = { equals: options.creatorId };
     }
 
-    if (options.tags) {
+    if (options.tags && options.tags.length > 0) {
       where.tags = { some: { tagId: { in: options.tags } } };
     }
 

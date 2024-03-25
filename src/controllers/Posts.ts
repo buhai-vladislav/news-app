@@ -111,6 +111,7 @@ export class PostsController {
     @Res() response: Response,
     @UploadedFiles() files?: IBufferedFile[],
   ): Promise<Response<ResponseBody<PostType>>> {
+    console.log('postId', postId);
     return this.postsService.updatePost(postId, updatePostDto, response, files);
   }
 
@@ -129,27 +130,6 @@ export class PostsController {
     @Res() response: Response,
   ): Promise<Response<ResponseBody<AffectedResult>>> {
     return this.postsService.deletePost(postId, response);
-  }
-
-  @ApiOperation({ summary: 'Update post media' })
-  @ApiSuccessResponse(AffectedResult, 'Post media updated', HttpStatus.OK)
-  @ApiErrorResponse(
-    String,
-    'Something went wrong',
-    HttpStatus.INTERNAL_SERVER_ERROR,
-  )
-  @ApiErrorResponse(String, 'Unauthorized', HttpStatus.UNAUTHORIZED)
-  @ApiConsumes('multipart/form-data')
-  @ApiBody(UpdatePostMediaSchema)
-  @UseInterceptors(FileInterceptor('file'))
-  @ApiBearerAuth(JWT_BEARER_SWAGGER_AUTH_NAME)
-  @Post('/:postId/media')
-  public async updatePostMedia(
-    @Param('postId') postId: string,
-    @Res() response: Response,
-    @UploadedFile() file: IBufferedFile,
-  ): Promise<Response<ResponseBody<AffectedResult>>> {
-    return this.postsService.changePostMedia(postId, file, response);
   }
 
   @ApiOperation({ summary: 'Search posts' })
@@ -277,9 +257,11 @@ export class PostsController {
     @Query('status') status?: PostStatus,
     @Query('creatorId') creatorId?: string,
     @Query('mixinConcatType') mixinConcatType?: MixinConcatType,
-    @Query('tags', new ParseArrayPipe({ items: String, separator: ',' }))
-    tags?: string[],
+    @Query('tags')
+    tags?: string,
   ): Promise<Response<ResponseBody<ItemsPaginated<PostType>>>> {
+    const tagsArray = typeof tags === 'string' ? tags.split(',') : [];
+
     const whereOptions = {
       limit,
       page,
@@ -287,7 +269,7 @@ export class PostsController {
       sortBy,
       sortOrder,
       status,
-      tags,
+      tags: tagsArray,
       creatorId,
       mixinConcatType,
     } as PostsFindOptions;
