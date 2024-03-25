@@ -21,7 +21,7 @@ export class UpdatePostBlockDto {
   })
   @IsNotEmpty()
   @IsString({ message: 'Post block ID must be a string' })
-  postBlockId: string;
+  id: string;
 
   @ApiProperty({
     enum: FieldType,

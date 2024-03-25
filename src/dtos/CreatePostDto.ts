@@ -3,12 +3,14 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   ValidateNested,
 } from '@nestjs/class-validator';
 import { FieldType, PostStatus } from '@prisma/client';
 import { CreatePostBlockDto } from './CreatePostBlockDto';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 
 export class CreatePostDto {
   @ApiProperty({ type: String, example: 'Post title', required: true })
@@ -27,7 +29,9 @@ export class CreatePostDto {
     nullable: true,
     description: 'Content of the post',
   })
-  @IsString({ message: 'Content must be a string' })
+  @IsString({ message: 'Media name must be a string or null' })
+  @IsOptional()
+  @Transform(({ value }) => (value === 'null' ? null : value ?? null))
   mediaName: string | null;
 
   @ApiProperty({
@@ -50,8 +54,12 @@ export class CreatePostDto {
     description: 'Tags IDs for the post',
   })
   @IsNotEmpty({ message: 'Tags are required' })
-  @IsString({ message: 'Tags must be a string', each: true })
   @IsArray({ message: 'Tags must be an array' })
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.includes(',')
+      ? value.split(',')
+      : [value],
+  )
   tags: string[];
 
   @ApiProperty({
@@ -73,6 +81,14 @@ export class CreatePostDto {
     description: 'Content of the post',
   })
   @IsNotEmpty({ message: 'Content is required' })
-  @ValidateNested({ each: true, message: 'Content must be an array' })
+  @ValidateNested({ each: true, message: 'Post blocks must be an array' })
+  @Type(() => CreatePostBlockDto)
+  @Transform(({ value }) =>
+    typeof value === 'string' && !value.includes('[')
+      ? JSON.parse(`[${value}]`)
+      : typeof value === 'string'
+        ? JSON.parse(value)
+        : value,
+  )
   postBlocks: CreatePostBlockDto[];
 }

@@ -31,11 +31,6 @@ export class CreatePostBlockDto {
   })
   content: string;
 
-  @ApiProperty({ required: false, example: 'Post block id' })
-  @IsOptional()
-  @IsString({ message: 'Post block id must be a string' })
-  postId?: string;
-
   @ApiProperty({ required: false, example: 'File name' })
   @IsOptional()
   @IsString({ message: 'File name must be a string' })
